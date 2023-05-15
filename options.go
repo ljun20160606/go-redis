@@ -45,6 +45,9 @@ type Options struct {
 	// Hook that is called when new connection is established.
 	OnConnect func(ctx context.Context, cn *Conn) error
 
+	// TestOnBorrow used to detect if conn is healthy when taken from idleConns
+	TestOnBorrow func(c net.Conn, t time.Time) error
+
 	// Protocol 2 or 3. Use the version to negotiate RESP version with redis-server.
 	// Default is 3.
 	Protocol int
@@ -502,6 +505,7 @@ func newConnPool(
 		Dialer: func(ctx context.Context) (net.Conn, error) {
 			return dialer(ctx, opt.Network, opt.Addr)
 		},
+		TestOnBorrow:    opt.TestOnBorrow,
 		PoolFIFO:        opt.PoolFIFO,
 		PoolSize:        opt.PoolSize,
 		PoolTimeout:     opt.PoolTimeout,

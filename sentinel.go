@@ -51,8 +51,9 @@ type FailoverOptions struct {
 
 	// Following options are copied from Options struct.
 
-	Dialer    func(ctx context.Context, network, addr string) (net.Conn, error)
-	OnConnect func(ctx context.Context, cn *Conn) error
+	Dialer       func(ctx context.Context, network, addr string) (net.Conn, error)
+	OnConnect    func(ctx context.Context, cn *Conn) error
+	TestOnBorrow func(c net.Conn, t time.Time) error
 
 	Protocol int
 	Username string
@@ -85,8 +86,9 @@ func (opt *FailoverOptions) clientOptions() *Options {
 		Addr:       "FailoverClient",
 		ClientName: opt.ClientName,
 
-		Dialer:    opt.Dialer,
-		OnConnect: opt.OnConnect,
+		Dialer:       opt.Dialer,
+		OnConnect:    opt.OnConnect,
+		TestOnBorrow: opt.TestOnBorrow,
 
 		DB:       opt.DB,
 		Protocol: opt.Protocol,
@@ -150,8 +152,9 @@ func (opt *FailoverOptions) clusterOptions() *ClusterOptions {
 	return &ClusterOptions{
 		ClientName: opt.ClientName,
 
-		Dialer:    opt.Dialer,
-		OnConnect: opt.OnConnect,
+		Dialer:       opt.Dialer,
+		OnConnect:    opt.OnConnect,
+		TestOnBorrow: opt.TestOnBorrow,
 
 		Protocol: opt.Protocol,
 		Username: opt.Username,
