@@ -54,7 +54,8 @@ type Pooler interface {
 }
 
 type Options struct {
-	Dialer func(context.Context) (net.Conn, error)
+	Dialer       func(context.Context) (net.Conn, error)
+	TestOnBorrow func(c net.Conn, t time.Time) error
 
 	PoolFIFO        bool
 	PoolSize        int
@@ -493,8 +494,14 @@ func (p *ConnPool) isHealthyConn(cn *Conn) bool {
 		return false
 	}
 
-	if connCheck(cn.netConn) != nil {
-		return false
+	if p.cfg.TestOnBorrow == nil {
+		if connCheck(cn.netConn) != nil {
+			return false
+		}
+	} else {
+		if err := p.cfg.TestOnBorrow(cn.netConn, cn.UsedAt()); err != nil {
+			return false
+		}
 	}
 
 	cn.SetUsedAt(now)

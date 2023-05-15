@@ -62,6 +62,8 @@ type ClusterOptions struct {
 
 	OnConnect func(ctx context.Context, cn *Conn) error
 
+	TestOnBorrow func(c net.Conn, t time.Time) error
+
 	Username string
 	Password string
 
@@ -259,9 +261,10 @@ func setupClusterQueryParams(u *url.URL, o *ClusterOptions) (*ClusterOptions, er
 
 func (opt *ClusterOptions) clientOptions() *Options {
 	return &Options{
-		ClientName: opt.ClientName,
-		Dialer:     opt.Dialer,
-		OnConnect:  opt.OnConnect,
+		ClientName:   opt.ClientName,
+		Dialer:       opt.Dialer,
+		OnConnect:    opt.OnConnect,
+		TestOnBorrow: opt.TestOnBorrow,
 
 		Username: opt.Username,
 		Password: opt.Password,

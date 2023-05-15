@@ -23,8 +23,9 @@ type UniversalOptions struct {
 
 	// Common options.
 
-	Dialer    func(ctx context.Context, network, addr string) (net.Conn, error)
-	OnConnect func(ctx context.Context, cn *Conn) error
+	Dialer       func(ctx context.Context, network, addr string) (net.Conn, error)
+	OnConnect    func(ctx context.Context, cn *Conn) error
+	TestOnBorrow func(c net.Conn, t time.Time) error
 
 	Username         string
 	Password         string
@@ -72,10 +73,11 @@ func (o *UniversalOptions) Cluster() *ClusterOptions {
 	}
 
 	return &ClusterOptions{
-		Addrs:      o.Addrs,
-		ClientName: o.ClientName,
-		Dialer:     o.Dialer,
-		OnConnect:  o.OnConnect,
+		Addrs:        o.Addrs,
+		ClientName:   o.ClientName,
+		Dialer:       o.Dialer,
+		OnConnect:    o.OnConnect,
+		TestOnBorrow: o.TestOnBorrow,
 
 		Username: o.Username,
 		Password: o.Password,
@@ -118,8 +120,9 @@ func (o *UniversalOptions) Failover() *FailoverOptions {
 		MasterName:    o.MasterName,
 		ClientName:    o.ClientName,
 
-		Dialer:    o.Dialer,
-		OnConnect: o.OnConnect,
+		Dialer:       o.Dialer,
+		OnConnect:    o.OnConnect,
+		TestOnBorrow: o.TestOnBorrow,
 
 		DB:               o.DB,
 		Username:         o.Username,
@@ -156,10 +159,11 @@ func (o *UniversalOptions) Simple() *Options {
 	}
 
 	return &Options{
-		Addr:       addr,
-		ClientName: o.ClientName,
-		Dialer:     o.Dialer,
-		OnConnect:  o.OnConnect,
+		Addr:         addr,
+		ClientName:   o.ClientName,
+		Dialer:       o.Dialer,
+		OnConnect:    o.OnConnect,
+		TestOnBorrow: o.TestOnBorrow,
 
 		DB:       o.DB,
 		Username: o.Username,

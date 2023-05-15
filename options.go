@@ -45,6 +45,9 @@ type Options struct {
 	// Hook that is called when new connection is established.
 	OnConnect func(ctx context.Context, cn *Conn) error
 
+	// TestOnBorrow used to detect if conn is healthy when taken from idleConns
+	TestOnBorrow func(c net.Conn, t time.Time) error
+
 	// Use the specified Username to authenticate the current connection
 	// with one of the connections defined in the ACL list when connecting
 	// to a Redis 6.0 instance, or greater, that is using the Redis ACL system.
@@ -488,6 +491,7 @@ func newConnPool(
 		Dialer: func(ctx context.Context) (net.Conn, error) {
 			return dialer(ctx, opt.Network, opt.Addr)
 		},
+		TestOnBorrow:    opt.TestOnBorrow,
 		PoolFIFO:        opt.PoolFIFO,
 		PoolSize:        opt.PoolSize,
 		PoolTimeout:     opt.PoolTimeout,
