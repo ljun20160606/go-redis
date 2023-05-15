@@ -67,8 +67,9 @@ type RingOptions struct {
 
 	// Following options are copied from Options struct.
 
-	Dialer    func(ctx context.Context, network, addr string) (net.Conn, error)
-	OnConnect func(ctx context.Context, cn *Conn) error
+	Dialer       func(ctx context.Context, network, addr string) (net.Conn, error)
+	OnConnect    func(ctx context.Context, cn *Conn) error
+	TestOnBorrow func(c net.Conn, t time.Time) error
 
 	Protocol int
 	Username string
@@ -133,9 +134,10 @@ func (opt *RingOptions) init() {
 
 func (opt *RingOptions) clientOptions() *Options {
 	return &Options{
-		ClientName: opt.ClientName,
-		Dialer:     opt.Dialer,
-		OnConnect:  opt.OnConnect,
+		ClientName:   opt.ClientName,
+		Dialer:       opt.Dialer,
+		OnConnect:    opt.OnConnect,
+		TestOnBorrow: opt.TestOnBorrow,
 
 		Protocol: opt.Protocol,
 		Username: opt.Username,
