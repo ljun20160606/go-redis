@@ -1,11 +1,15 @@
 package redis
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/redis/go-redis/v9/internal"
@@ -5165,4 +5169,57 @@ func (cmd *ACLLogCmd) readReply(rd *proto.Reader) error {
 	}
 
 	return nil
+}
+
+//------------------------------------------------------------------------------
+
+var bufPool = sync.Pool{
+	New: func() any {
+		return bytes.NewBuffer(nil)
+	},
+}
+
+type RawCmd struct {
+	baseCmd
+
+	buf    *bytes.Buffer
+	closed atomic.Bool
+}
+
+var _ Cmder = (*RawCmd)(nil)
+
+func NewRawCmd(ctx context.Context, args ...interface{}) *RawCmd {
+	buffer := bufPool.Get().(*bytes.Buffer)
+	buffer.Reset()
+	return &RawCmd{
+		baseCmd: baseCmd{
+			ctx:  ctx,
+			args: args,
+		},
+		buf: buffer,
+	}
+}
+
+func (cmd *RawCmd) String() string {
+	if cmd.closed.Load() {
+		return cmdString(cmd, "")
+	}
+	return cmdString(cmd, cmd.buf.String())
+}
+
+func (cmd *RawCmd) readReply(rd *proto.Reader) (err error) {
+	if err := proto.NewBytesReader(rd).ReadReply(cmd.buf); err != nil {
+		cmd.Close()
+		return err
+	}
+	return nil
+}
+
+func (cmd *RawCmd) WriteTo(w io.Writer) (n int64, err error) {
+	return cmd.buf.WriteTo(w)
+}
+
+func (cmd *RawCmd) Close() {
+	cmd.closed.Store(true)
+	bufPool.Put(cmd.buf)
 }
