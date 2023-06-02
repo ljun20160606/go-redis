@@ -401,7 +401,11 @@ func (p *ConnPool) removeConnWithLock(cn *Conn) {
 func (p *ConnPool) removeConn(cn *Conn) {
 	for i, c := range p.conns {
 		if c == cn {
-			p.conns = append(p.conns[:i], p.conns[i+1:]...)
+			lastIdx := len(p.conns) - 1
+			p.conns[i], p.conns[lastIdx] = p.conns[lastIdx], p.conns[i]
+			p.conns[lastIdx] = nil
+			p.conns = p.conns[:lastIdx]
+
 			if cn.pooled {
 				p.poolSize--
 				p.checkMinIdleConns()
