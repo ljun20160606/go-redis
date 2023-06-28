@@ -38,6 +38,9 @@ type PubSub struct {
 	chOnce sync.Once
 	msgCh  *channel
 	allCh  *channel
+
+	// hack code
+	CloseIfErr bool
 }
 
 func (c *PubSub) init() {
@@ -164,8 +167,14 @@ func (c *PubSub) closeTheCn(reason error) error {
 	if c.cn == nil {
 		return nil
 	}
+
 	if !c.closed {
-		internal.Logger.Printf(c.getContext(), "redis: discarding bad PubSub connection: %s", reason)
+		if c.CloseIfErr {
+			c.closed = true
+			close(c.exit)
+		} else {
+			internal.Logger.Printf(c.getContext(), "redis: discarding bad PubSub connection: %s", reason)
+		}
 	}
 	err := c.closeConn(c.cn)
 	c.cn = nil
