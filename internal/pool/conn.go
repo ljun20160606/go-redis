@@ -13,6 +13,8 @@ import (
 var noDeadline = time.Time{}
 
 type Conn struct {
+	PoolId int64
+
 	usedAt  int64 // atomic
 	netConn net.Conn
 

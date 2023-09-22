@@ -211,7 +211,7 @@ func NewFailoverClient(failoverOpt *FailoverOptions) *Client {
 	opt.Dialer = masterReplicaDialer(failover)
 	opt.init()
 
-	var connPool *pool.ConnPool
+	var connPool *pool.ProtoPool
 
 	rdb := &Client{
 		baseClient: &baseClient{
