@@ -500,8 +500,8 @@ func getUserPassword(u *url.URL) (string, string) {
 func newConnPool(
 	opt *Options,
 	dialer func(ctx context.Context, network, addr string) (net.Conn, error),
-) *pool.ConnPool {
-	return pool.NewConnPool(&pool.Options{
+) *pool.ProtoPool {
+	return pool.NewProtoConnPool(&pool.Options{
 		Dialer: func(ctx context.Context) (net.Conn, error) {
 			return dialer(ctx, opt.Network, opt.Addr)
 		},

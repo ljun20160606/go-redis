@@ -76,6 +76,8 @@ type lastDialErrorWrap struct {
 }
 
 type ConnPool struct {
+	Id int64
+
 	cfg *Options
 
 	dialErrorsNum uint32 // atomic
@@ -96,9 +98,11 @@ type ConnPool struct {
 }
 
 var _ Pooler = (*ConnPool)(nil)
+var idx atomic.Int64
 
 func NewConnPool(opt *Options) *ConnPool {
 	p := &ConnPool{
+		Id:  idx.Add(1),
 		cfg: opt,
 
 		queue:     make(chan struct{}, opt.PoolSize),
@@ -213,6 +217,7 @@ func (p *ConnPool) dialConn(ctx context.Context, pooled bool) (*Conn, error) {
 	}
 
 	cn := NewConn(netConn)
+	cn.poolId = p.Id
 	cn.pooled = pooled
 	return cn, nil
 }
