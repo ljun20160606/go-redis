@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/redis/go-redis/v9/internal/util"
 )
@@ -30,14 +29,14 @@ func (r *BytesReader) ReadReply(writer *bytes.Buffer) error {
 	case RespError:
 		return RedisError(line[1 : len(line)-2])
 	case RespBlobError:
-		if err := r.readStringReply(line, writer); err != nil {
+		blobErr, err := r.Reader.readStringReply(line)
+		if err != nil {
+			if err == Nil {
+				return nil
+			}
 			return err
 		}
-		blobErrorMsg := writer.String()
-		if strings.HasSuffix(blobErrorMsg, "\r\n") {
-			return RedisError(blobErrorMsg[:len(blobErrorMsg)-2])
-		}
-		return RedisError(blobErrorMsg)
+		return RedisError(blobErr)
 	default:
 		if _, err := writer.Write(line); err != nil {
 			return err
@@ -45,10 +44,8 @@ func (r *BytesReader) ReadReply(writer *bytes.Buffer) error {
 		switch line[0] {
 		case RespNil, RespStatus, RespInt, RespFloat, RespBool, RespBigInt:
 			return nil
-		case RespString:
+		case RespString, RespVerbatim:
 			return r.readStringReply(line, writer)
-		case RespVerbatim:
-			return r.readVerb(line, writer)
 		case RespArray, RespSet, RespPush:
 			return r.readSlice(line, writer)
 		case RespMap:
@@ -99,22 +96,10 @@ func (r *BytesReader) readStringReply(line []byte, writer *bytes.Buffer) error {
 	if err != nil {
 		return err
 	}
-	if n == 0 {
+	if n == -1 {
 		return nil
 	}
 
-	_, err = writer.ReadFrom(io.LimitReader(r.Reader.rd, int64(n+2)))
-	return err
-}
-
-func (r *BytesReader) readVerb(line []byte, writer *bytes.Buffer) error {
-	n, err := rawReplyLen(line)
-	if err != nil {
-		return err
-	}
-	if n == 0 {
-		return nil
-	}
 	_, err = writer.ReadFrom(io.LimitReader(r.Reader.rd, int64(n+2)))
 	return err
 }
@@ -124,12 +109,15 @@ func (r *BytesReader) readSlice(line []byte, writer *bytes.Buffer) error {
 	if err != nil {
 		return err
 	}
-	if n == 0 {
+	if n <= 0 {
 		return nil
 	}
 
 	for i := 0; i < n; i++ {
 		if err := r.ReadReply(writer); err != nil {
+			if _, ok := err.(RedisError); ok {
+				continue
+			}
 			return err
 		}
 	}
@@ -141,7 +129,7 @@ func (r *BytesReader) readMap(line []byte, writer *bytes.Buffer) error {
 	if err != nil {
 		return err
 	}
-	if n == 0 {
+	if n <= 0 {
 		return nil
 	}
 
@@ -152,6 +140,9 @@ func (r *BytesReader) readMap(line []byte, writer *bytes.Buffer) error {
 		}
 		// read value
 		if err := r.ReadReply(writer); err != nil {
+			if _, ok := err.(RedisError); ok {
+				continue
+			}
 			return err
 		}
 	}
@@ -168,12 +159,5 @@ func rawReplyLen(line []byte) (n int, err error) {
 		return 0, fmt.Errorf("redis: invalid reply: %q", line)
 	}
 
-	switch line[0] {
-	case RespString, RespVerbatim, RespBlobError,
-		RespArray, RespSet, RespPush, RespMap, RespAttr:
-		if n == -1 {
-			return 0, nil
-		}
-	}
 	return n, nil
 }
